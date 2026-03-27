@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulldogs Weather Radio | WXB26 Live</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="active">HOME</a>
+        <a href="alerts.html">ALERTS</a>
+        <a href="about.html">ABOUT</a>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="header">
+                <img src="wrn-logo.png" alt="WRN Ambassador" style="width: 150px; margin-bottom: 1.5rem; opacity: 0.9;">
+                <div class="status-badge">
+                    <div class="status-dot"></div>
+                    LIVE STREAMING
+                </div>
+                <h1>Bulldogs Weather Radio</h1>
+                <div class="tagline">WXB26 • NEW YORK CITY METRO</div>
+            </div>
+
+            <div id="clock-container">
+                <div class="clock-label">Current Time (EDT)</div>
+                <div id="live-clock">--:--:--</div>
+            </div>
+
+            <div class="player-card">
+                <div class="clock-label">Official 24/7 Digital Feed</div>
+                <!-- Caster.fm Modern Player Widget -->
+                <div data-type="newStreamPlayer" data-publicToken="7a948d9d-ad5a-495c-85b9-192da853346f" data-theme="dark" data-color="e81e4d" data-channelId="" data-rendered="false" class="cstrEmbed">
+                    <a href="https://www.caster.fm">Shoutcast Hosting</a> 
+                    <a href="https://www.caster.fm">Stream Hosting</a> 
+                    <a href="https://www.caster.fm">Radio Server Hosting</a>
+                </div>
+                <script src="//cdn.cloud.caster.fm//widgets/embed.js"></script>
+            </div>
+
+            <p style="margin-top: 2rem; font-size: 0.875rem; color: var(--text-secondary);">
+                Serving the New York Tri-State Area with continuous weather and emergency alerting.
+            </p>
+        </div>
+    </main>
+
+    <footer>
+        Broadcasting in cooperation with the National Weather Service.<br>
+        Ambassador of the Weather-Ready Nation.
+    </footer>
+
+    <script src="clock.js"></script>
+</body>
+</html>

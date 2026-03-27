@@ -4,7 +4,7 @@ import json
 import logging
 import traceback
 import requests
-from utils import produce_wav_file
+from utils import produce_wav_file, clean_weather_text
 
 log = logging.getLogger("BMH")
 
@@ -31,7 +31,7 @@ def getHazardousWeatherOutlook():
         hwo = hwo.split('\n')
         index = [idx for idx, s in enumerate(hwo) if 'this hazardous weather outlook is for' in s.lower()][0]
         hwo = hwo[int(index):-2]
-        hwo = '\n'.join(hwo)
+        hwo = clean_weather_text('\n'.join(hwo))
         for phoneme in phonemeDict:
             log.debug('[HWO PHONEMES] Replacing %s with %s', phoneme, phonemeDict[phoneme])
             hwo = str(hwo).replace(phoneme, f'<vtml_phoneme alphabet="x-cmu" ph="{phonemeDict[phoneme]}"></vtml_phoneme>')

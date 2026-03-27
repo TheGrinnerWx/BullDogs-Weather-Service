@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About WXB26 | Bulldogs Weather Radio</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav>
+        <a href="index.html">HOME</a>
+        <a href="alerts.html">ALERTS</a>
+        <a href="about.html" class="active">ABOUT</a>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="header">
+                <img src="wrn-logo.png" alt="WRN Ambassador" style="width: 120px; margin-bottom: 1rem; opacity: 0.8;">
+                <h1>About the Station</h1>
+                <div class="tagline">WXB26 • BROADCASTING EXCELLENCE</div>
+            </div>
+
+            <div id="clock-container">
+                <div class="clock-label">Current Time (EDT)</div>
+                <div id="live-clock">--:--:--</div>
+            </div>
+
+            <div style="text-align: left; color: var(--text-secondary); font-size: 0.875rem; line-height: 1.7;">
+                <p style="margin-bottom: 1rem;">
+                    Bulldogs Weather Radio (WXB26) is a specialized weather broadcast service operating in cooperation with the National Weather Service. We utilize an advanced BMH (Broadcast Message Handler) emulation core to deliver 24/7 weather information, marine forecasts, and emergency alerting.
+                </p>
+                <p>
+                    Our mission is to provide life-saving weather data with professional-grade clarity and 100% SAME/EAS compliance. This platform is part of the Weather-Ready Nation (WRN) Ambassador program.
+                </p>
+            </div>
+
+            <div class="player-card" style="margin-top: 2rem;">
+                <p style="font-size: 0.75rem; font-weight: 700; color: var(--accent-blue);">TECHNICAL SPECIFICATIONS</p>
+                <ul style="list-style: none; margin-top: 0.5rem; text-align: left; font-size: 0.75rem;">
+                    <li>• Encoder: SAME/EAS Pure-Python JIT</li>
+                    <li>• Stream: 80kbps CBR MP3 (libmp3lame)</li>
+                    <li>• Network: High-Persistence Dual-Pipe</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        Empowering the community with real-time weather intelligence.
+    </footer>
+
+    <script src="clock.js"></script>
+</body>
+</html>

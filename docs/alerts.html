@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Alerts | WXB26 Bulldogs Weather Radio</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav>
+        <a href="index.html">HOME</a>
+        <a href="alerts.html" class="active">ALERTS</a>
+        <a href="about.html">ABOUT</a>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="header">
+                <img src="wrn-logo.png" alt="WRN Ambassador" style="width: 120px; margin-bottom: 1rem; opacity: 0.8;">
+                <h1>Emergency Alerts</h1>
+                <div class="tagline">WXB26 MONITORING NETWORK</div>
+            </div>
+
+            <div id="clock-container">
+                <div class="clock-label">Current Time (EDT)</div>
+                <div id="live-clock">--:--:--</div>
+            </div>
+
+            <div style="text-align: left; background: rgba(0,0,0,0.1); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                <h3 style="color: var(--accent-blue); margin-bottom: 1rem;">Current Status</h3>
+                <p style="font-size: 0.875rem; line-height: 1.6; color: var(--text-secondary);">
+                    The station is currently in normal operation. No active EAS activations or severe weather warnings are in effect for the immediate New York City metropolitan area.
+                </p>
+                <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: #4ade80; font-size: 0.75rem; font-weight: 700;">
+                    <div class="status-dot"></div>
+                    ALL SYSTEMS CLEAR
+                </div>
+            </div>
+
+            <p style="margin-top: 2rem; font-size: 0.75rem; color: var(--text-secondary);">
+                Data sourced from the National Weather Service and our local BMH emulation core.
+            </p>
+        </div>
+    </main>
+
+    <footer>
+        Bulldogs Weather Radio • Official EAS Relay Station
+    </footer>
+
+    <script src="clock.js"></script>
+</body>
+</html>

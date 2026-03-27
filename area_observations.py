@@ -1,167 +1,80 @@
-import sys
+import urllib.request
 import json
-import random
 import logging
 import traceback
-from datetime import datetime
-import requests
-from utils import produce_wav_file
+from utils import produce_wav_file, clean_weather_text
 
-# If you touch stuff below, it might break. Be nice to it, it's fragile. Like me. I'm kidding. Why are you still reading this?
 
-now = datetime.now()
-config = json.load(open('config.json', encoding='utf-8'))
-localObsCode = config['Observations']['mainObsCode']
-currentTimeFormat = now.strftime('%I %p')
-regionalObsCodes = config['Observations']['regionalObsCodes']
-formatFile = 'obsFormat.txt'
-speed = config['ttsSpeed']
-pause = config['endPause']
-globalTimeout = int(config.get('globalHTTPTimeout', 15))
-openerlist = config['Observations']['openerList']
-openers = config['Observations']['openers']
-cityNameDef = config['Observations']['cityNameDef']
-dividers = config['Observations']['dividers']
-phonemeDict = json.load(open('phonemeDB.json', encoding='utf-8'))
-replaceDict = phonemeDict['replace']
-phonemeDict = phonemeDict['phonemes']
-observations = []
-recap = ''
-
-log = logging.getLogger("BMH")
-
-def getMain(airportCode):
-    global recap
-    apiCall = requests.get(f'https://api.weather.gov/stations/{airportCode}/observations/latest', timeout=globalTimeout).text
-    apiCall = json.loads(apiCall)
-    cityName = cityNameDef[airportCode]
+def getMain():
+    log = logging.getLogger("BMH")
     try:
-        log.debug('[OBSERVATIONS] Grabbing main report for %s.', airportCode)
-        skyCondition = str(apiCall['properties']['textDescription']).replace('fog', 'foggy')
-        tempInF = str(toCelcius(apiCall['properties']['temperature']['value']))
-        dewpointInF = str(toCelcius(apiCall['properties']['dewpoint']['value']))
-        relativeHumidity = str(round(apiCall['properties']['relativeHumidity']['value'], 0)).replace('.0', '')
-        windSpeed = str(toMPH(apiCall['properties']['windSpeed']['value']))
-        try:
-            windGust = str(toMPH(apiCall['properties']['windGust']['value']))
-        except Exception:
-            windGust = 'null'
-        windDirection = str(degToCompass(round(apiCall['properties']['windDirection']['value'], 0)))
-        Pressure = str(toinHG(apiCall['properties']['barometricPressure']['value']))
-        PressureDirection = getPressureDirection(airportCode)
-        time = now.strftime('%I %p').lstrip('0')
-        if windGust == 'null':
-            fullObservation = f'{cityName}, it was {skyCondition}. The temperature was {tempInF}, the dewpoint {dewpointInF}, and the relative humidity was {relativeHumidity} percent. The wind was {windDirection} at {windSpeed} miles an hour. The pressure was {Pressure} inches and {PressureDirection}.'
-        else:
-            fullObservation = f'{cityName}, it was {skyCondition}. The temperature was {tempInF}, the dewpoint {dewpointInF}, and the relative humidity was {relativeHumidity} percent. The wind was {windDirection} at {windSpeed} miles an hour, gusting to {windGust}. The pressure was {Pressure} inches and {PressureDirection}.'
-        recap = f'Once again, at {time} in {cityName} it was {tempInF} degrees under {skyCondition} skies.'
-    except Exception:
-        log.error('[OBSERVATIONS] No report for %s. %s', airportCode, traceback.format_exc())
-        fullObservation = f'The report from {cityName} was not available. '
-        recap = ''
-    observations.append(str(fullObservation))
+        config = json.load(open('config.json', encoding='utf-8'))
+        stations = config.get('Observations', {}).get('regionalObsCodes', ['KEWR', 'KJFK', 'KLGA', 'KNYC', 'KHPN', 'KISP', 'KFRG', 'KMMU', 'KBDL'])
+        phonemeDict = json.load(open('phonemeDB.json', encoding='utf-8'))
+        replaceDict = phonemeDict.get('replace', {})
+        phonemeDict = phonemeDict.get('phonemes', {})
+        speed = config.get('ttsSpeed', "110")
+        pause = config.get('endPause', "1300")
+        
+        script = "Regional weather observations. <vtml_pause time=\"500\"/> "
 
-def getRegional(airportCode):
-    apiCall = requests.get(f'https://api.weather.gov/stations/{airportCode}/observations/latest', timeout=globalTimeout).text
-    apiCall = json.loads(apiCall)
-    cityName = cityNameDef[airportCode]
-    try:
-        log.debug('[OBSERVATIONS] Grabbing report for %s.', airportCode)
-        skyCondition = apiCall['properties']['textDescription']
-        tempInF = str(toCelcius(apiCall['properties']['temperature']['value']))[0:3].replace('.', '')
-        windSpeed = str(toMPH(apiCall['properties']['windSpeed']['value']))
-        try:
-            windGust = str(toMPH(apiCall['properties']['windGust']['value']))
-        except Exception:
-            windGust = 'null'
-        windDirection = str(degToCompass(round(apiCall['properties']['windDirection']['value'], 0)))
-        if airportCode in dividers:
-            if windGust == 'null':
-                fullObservation = f'{dividers[airportCode]} {cityName}, it was {skyCondition}, with a temperature of {tempInF}. The <vtml_phoneme alphabet="x-CMU" ph="W IH1 N D"></vtml_phoneme> was {windDirection} at {windSpeed} miles an hour.'
-            else:
-                fullObservation = f'{dividers[airportCode]} {cityName}, it was {skyCondition}, with a temperature of {tempInF}. The <vtml_phoneme alphabet="x-CMU" ph="W IH1 N D"></vtml_phoneme> was {windDirection} at {windSpeed} miles an hour, gusting to {windGust} miles an hour.'
-        else:
-            if windGust == 'null':
-                fullObservation = f'{cityName}, it was {skyCondition}, with a temperature of {tempInF}. The <vtml_phoneme alphabet="x-CMU" ph="W IH1 N D"></vtml_phoneme> was {windDirection} at {windSpeed} miles an hour.'
-            else:
-                fullObservation = f'{cityName}, it was {skyCondition}, with a temperature of {tempInF}. The <vtml_phoneme alphabet="x-CMU" ph="W IH1 N D"></vtml_phoneme> was {windDirection} at {windSpeed} miles an hour, gusting to {windGust} miles an hour.'
-    except Exception:
-        log.error('[OBSERVATIONS] No report for %s.', airportCode)
-        if airportCode in dividers:
-            fullObservation = f'{dividers[airportCode]} {cityName}, the weather conditions were not available.'
-        else:
-            fullObservation = f'The report from {cityName} was not available. '
-    observations.append(str(fullObservation))
+        for station in stations:
+            try:
+                url = f"https://api.weather.gov/stations/{station}/observations/latest"
+                req = urllib.request.Request(url)
+                req.add_header('User-Agent', 'BulldogsWeatherRadio/1.0')
+                
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    data = json.loads(response.read().decode())
+                    prop = data['properties']
 
-def toCelcius(temp):
-    temp = (temp * 1.8) + 32
-    temp = round(temp, 0)
-    temp = str(temp).replace('.0', '')
-    return temp
+                # SAFE FETCHING: Use .get() and check for None before rounding
+                temp_val = prop.get('temperature', {}).get('value')
+                humid_val = prop.get('relativeHumidity', {}).get('value')
+                wind_val = prop.get('windSpeed', {}).get('value')
+                desc = prop.get('textDescription', 'Fair')
 
-def toMPH(kmh):
-    mph = 0.6214 * kmh
-    mph = round(mph, 0)
-    mph = str(mph).replace('.0', '')
-    return mph
+                # Convert Celsius to Fahrenheit safely
+                if temp_val is not None:
+                    temp_f = round((temp_val * 9/5) + 32)
+                    temp_str = f"{temp_f} degrees"
+                else:
+                    temp_str = "Unavailable"
 
-def degToCompass(num):
-    val=int((num/22.5)+.5)
-    arr=["North", "Northeast", "East", "Southeast", "South", "Southwest","West","Northwest"]
-    return arr[(val % 8)]
+                # Handle Humidity safely
+                if humid_val is not None:
+                    hum_str = f"Humidity {round(humid_val)} percent"
+                else:
+                    hum_str = ""
 
-def toinHG(kpa):
-    inHG = kpa / 3386.3886666667
-    inHG = round(inHG, 2)
-    return inHG
+                script += f"At {station}... {desc}... Temperature {temp_str}. {hum_str}. <vtml_pause time=\"800\"/> "
+                log.info(f"[OBSERVATIONS] Processed {station}")
 
-def getPressureDirection(airportCode):
-    apiCall = requests.get(f'https://api.weather.gov/stations/{airportCode}/observations/latest', timeout=globalTimeout).text
-    apiCall = json.loads(apiCall)
-    currentPressure = toinHG(apiCall['properties']['barometricPressure']['value'])
-    lastPressure = toinHG(apiCall['properties']['barometricPressure']['value'])
-    if currentPressure > lastPressure:
-        return 'rising'
-    elif currentPressure < lastPressure:
-        return 'falling'
-    elif currentPressure == lastPressure:
-        return 'steady'
+            except Exception as e:
+                log.error(f"[OBSERVATIONS] Skipping {station} due to data error: {e}")
+                continue
 
-def getObservations():
-    try:
-        global observations
-        getMain(localObsCode)
-        for location in regionalObsCodes:
-            getRegional(location)
-        observations.append(recap)
-        observationsStr = '\n'.join(observations)
-        if len(openerlist) > 0:
-            openerChoice = str(random.choice(openerlist))
-            log.debug('[OBSERVATIONS OPENER] Picked "%s" for Observation Opener.', openers[openerChoice])
-            opener = openers[openerChoice].replace('TIME', currentTimeFormat)
-            observationsStr = f'{opener} {observationsStr}'
-        for phoneme in phonemeDict:
-            log.debug('[OBSERVATIONS PHONEMES] Replacing %s with %s', phoneme, phonemeDict[phoneme])
-            observationsStr = str(observationsStr).replace(phoneme, f'<vtml_phoneme alphabet="x-cmu" ph="{phonemeDict[phoneme]}"></vtml_phoneme>')
-        for word in replaceDict:
-            log.debug('[OBSERVATIONS PHONEMES] Replacing %s with %s', word, replaceDict[word])
-            if '*PAUSE' in replaceDict[word]:
-                pauseTime = replaceDict[word].split('*')[1].split('-')[1]
-                word = word.replace(f'*PAUSE-{pauseTime}*', f'<vtml_pause time="{pauseTime}"/>')
-                observationsStr = str(observationsStr).replace(word, replaceDict[word])
-            else:
-                observationsStr = str(observationsStr).replace(word, replaceDict[word])
-        observationsStr = f'<vtml_pause time="500"/> <vtml_speed value="{speed}"> ' + observationsStr + f'<vtml_pause time="{pause}"/> </vtml_speed>'
+        finalScript = clean_weather_text(script)
+        
+        # Phoneme and word replacement
+        for phoneme, replacement in phonemeDict.items():
+            finalScript = finalScript.replace(phoneme, f'<vtml_phoneme alphabet="x-cmu" ph="{replacement}"></vtml_phoneme>')
+        for word, replacement in replaceDict.items():
+            finalScript = finalScript.replace(word, replacement)
 
-        observationsStr = observationsStr.replace('\n', ' ').replace('\r', ' ')
+        finalScript = f'<vtml_volume value="200"> <vtml_speed value="{speed}"> ' + finalScript + f'<vtml_pause time="{pause}"/> </vtml_volume> </vtml_speed>'
+        finalScript = finalScript.replace('\n', ' ').replace('\r', ' ')
 
-        log.debug('[OBSERVATIONS] Final Text: %s', observationsStr)
-        produce_wav_file(observationsStr, 'Observations.wav')
-    except requests.exceptions.Timeout:
-        log.error("[OBSERVATIONS] An HTTP Request timed out.")
+        log.debug('[OBSERVATIONS] Final Text: %s', finalScript)
+        produce_wav_file(finalScript, 'Observations.wav')
+        return finalScript
+
     except Exception:
         log.error('[OBSERVATIONS] %s', traceback.format_exc())
-        sys.exit(1)
+        return ""
 
-if __name__ == '__main__':
-    print('[OBSERVATIONS] This is one of the BMH modules, not a standalone program. Please run main.py to execute the full BMH program.')
+def getObservations():
+    """Compatibility wrapper returning the observations script.
+    The rest of the system expects a function named getObservations.
+    """
+    return getMain()

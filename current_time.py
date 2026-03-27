@@ -1,13 +1,14 @@
+import os
 import sys
-import json
 import logging
 import traceback
 from datetime import datetime
+import utils
 from utils import produce_wav_file
 
 log = logging.getLogger("BMH")
 
-config = json.load(open('config.json', encoding='utf-8'))
+config = utils.load_config()
 speed = config['ttsSpeed']
 pause = config['endPause']
 script = config['currentTime']['timeScript']

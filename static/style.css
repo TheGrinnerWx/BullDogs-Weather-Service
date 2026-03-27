@@ -1,0 +1,209 @@
+:root {
+    --primary: #ff3b3b;
+    --background: #0f0f0f;
+    --glass: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --text: #ffffff;
+    --accent: #ffae00;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--background);
+    color: var(--text);
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+.background-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 20% 30%, #2b0000 0%, #0f0f0f 100%);
+    z-index: -1;
+}
+
+.glass-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.glow-text {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--primary);
+    text-shadow: 0 0 20px rgba(255, 59, 59, 0.5);
+}
+
+.subtitle {
+    color: #888;
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+.card {
+    background: var(--glass);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+h2 {
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 10px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #bbb;
+}
+
+select, textarea {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 12px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s;
+}
+
+select:focus, textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(255, 59, 59, 0.2);
+}
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 12px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.checkbox-item input {
+    accent-color: var(--primary);
+}
+
+.actions {
+    margin-top: 30px;
+}
+
+.primary-btn {
+    width: 100%;
+    padding: 18px;
+    background: var(--primary);
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-weight: 800;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.primary-btn:hover {
+    background: #ff5555;
+    box-shadow: 0 0 30px rgba(255, 59, 59, 0.4);
+    transform: translateY(-2px);
+}
+
+.primary-btn:active {
+    transform: translateY(0);
+}
+
+.primary-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.indicator-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.indicator-dot.online {
+    background: #00ff88;
+    box-shadow: 0 0 10px #00ff88;
+}
+
+.log-container {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+}
+
+.log-entry {
+    margin-bottom: 8px;
+    border-left: 3px solid transparent;
+    padding-left: 10px;
+}
+
+.log-entry.success { border-left-color: #00ff88; color: #00ff88; }
+.log-entry.error { border-left-color: var(--primary); color: var(--primary); }
+.log-entry.system { border-left-color: var(--accent); color: var(--accent); }
+
+@media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+}

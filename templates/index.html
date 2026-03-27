@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WXB26 Emergency Control Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-overlay"></div>
+    
+    <div class="glass-container">
+        <header>
+            <h1 class="glow-text">EMERGENCY CONTROL PANEL</h1>
+            <p class="subtitle">WXB26 Bulldogs Weather Radio - NYC Metropolitan Area</p>
+        </header>
+
+        <main>
+            <section class="card alert-form">
+                <h2>Broadcast New Alert</h2>
+                
+                <div class="input-group">
+                    <label for="event_code">Event Type</label>
+                    <select id="event_code">
+                        {% for code, desc in event_codes.items() %}
+                        <option value="{{ code }}">{{ code }} - {{ desc }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Target Locations (FIPS)</label>
+                    <div class="checkbox-grid">
+                        {% for code, name in locations %}
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="location" value="{{ code }}" checked>
+                            <span>{{ name }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="script">Alert Script (TTS)</label>
+                    <textarea id="script" rows="6" placeholder="Enter the official alert text here..."></textarea>
+                </div>
+
+                <div class="actions">
+                    <button id="btn-trigger" class="primary-btn">BROADCAST INTERRUPT</button>
+                </div>
+            </section>
+
+            <section class="card status-panel">
+                <h2>Station Status</h2>
+                <div class="status-indicator">
+                    <div class="indicator-dot online"></div>
+                    <span>Broadcaster Online</span>
+                </div>
+                <div id="log-box" class="log-container">
+                    <p class="log-entry system">[SYSTEM] Ready for manual injection.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('btn-trigger').addEventListener('click', async () => {
+            const eventCode = document.getElementById('event_code').value;
+            const script = document.getElementById('script').value;
+            const locations = Array.from(document.querySelectorAll('input[name="location"]:checked')).map(cb => cb.value);
+            
+            if (!script) {
+                alert("Please enter an alert script!");
+                return;
+            }
+
+            const btn = document.getElementById('btn-trigger');
+            const logBox = document.getElementById('log-box');
+            
+            btn.disabled = true;
+            btn.textContent = "GENERATING TONES...";
+            
+            try {
+                const response = await fetch('/trigger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        event_code: eventCode,
+                        locations: locations,
+                        script: script
+                    })
+                });
+                
+                const result = await response.json();
+                
+                const entry = document.createElement('p');
+                entry.className = `log-entry ${result.status}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${result.message}`;
+                logBox.prepend(entry);
+                
+            } catch (error) {
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "BROADCAST INTERRUPT";
+            }
+        });
+    </script>
+</body>
+</html>

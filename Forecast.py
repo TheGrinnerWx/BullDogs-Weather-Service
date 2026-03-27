@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 import requests
-from utils import produce_wav_file
+from utils import produce_wav_file, clean_weather_text
 
 log = logging.getLogger("BMH")
 
@@ -27,8 +27,7 @@ def getForecast():
             name = str(period['name']).capitalize()
             detailedForecast = str(period['detailedForecast'])
             forecast.append(f'{name}, {detailedForecast}')
-        finalForecast = forecast
-        finalForecast = ' '.join(finalForecast)
+        finalForecast = clean_weather_text(' '.join(forecast))
         for phoneme in phonemeDict:
             log.debug('[FORECAST PHONEMES] Replacing %s with %s', phoneme, phonemeDict[phoneme])
             finalForecast = str(finalForecast).replace(phoneme, f'<vtml_phoneme alphabet="x-cmu" ph="{phonemeDict[phoneme]}"></vtml_phoneme>')

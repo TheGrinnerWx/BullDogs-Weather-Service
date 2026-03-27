@@ -12,6 +12,87 @@ from typing import Generator, Optional
 import tzlocal
 import pytz
 
+# Global Path Constants
+SOX_PATH = shutil.which('sox') or '/opt/homebrew/bin/sox'
+if not os.path.exists(SOX_PATH):
+    SOX_PATH = '/usr/local/bin/sox'
+if not os.path.exists(SOX_PATH):
+    SOX_PATH = 'sox' # Final fallback to shell PATH
+
+def clean_weather_text(text):
+    """
+    Expands common NWS/Marine abbreviations into full words for professional TTS.
+    """
+    # 1. Direct word replacements (with spaces)
+    translations = {
+        # Nautical & Units
+        " KT ": " knots ", " kt ": " knots ",
+        " NM ": " nautical miles ", " nm ": " nautical miles ",
+        " FT ": " feet ", " ft ": " feet ",
+        " G ": " gusting to ", " g ": " gusting to ",
+        " VSBY ": " visibility ", " vsby ": " visibility ",
+        # Weather Conditions
+        " TSTM ": " thunderstorm ", " TSTMS ": " thunderstorms ",
+        " SHWR ": " shower ", " SHWRS ": " showers ",
+        " CHC ": " chance ",
+        " LTR ": " later ",
+        " MOTS ": " mostly ",
+        " OVC ": " overcast ",
+        " SCT ": " scattered ",
+        " NUM ": " numerous ",
+        " ISO ": " isolated ",
+        " PCT ": " percent ",
+        " HI ": " high ", " LO ": " low ",
+        " TEMP ": " temperature ",
+        " FRZ ": " freeze ", " FRZNG ": " freezing ",
+        " SNW ": " snow ", " RNSW ": " rain and snow ",
+        " PRCP ": " precipitation ",
+        " BLWG ": " blowing ",
+        " DRZL ": " drizzle ",
+        " FZFG ": " freezing fog ",
+        " HZY ": " hazy ",
+        " SLT ": " slight ",
+        " VRY ": " very ",
+        " PTLY ": " partly ",
+        " CLDY ": " cloudy ",
+        # Environment & Wind
+        " WND ": " wind ", " WNDS ": " winds ",
+        " MPH ": " miles per hour ",
+        # Compass Directions (Padded to avoid middle-of-word hits)
+        " SE ": " Southeast ", " SW ": " Southwest ",
+        " NE ": " Northeast ", " NW ": " Northwest ",
+        " N ": " North ", " S ": " South ", " E ": " East ", " W ": " West "
+    }
+    
+    for key, value in translations.items():
+        text = text.replace(key, value)
+
+    # 2. Aggressive replacements for connected abbreviations (e.g., 10KT, 5NM)
+    import re
+    # Match numbers followed by KT/NM/FT
+    text = re.sub(r'(\d+)KT\b', r'\1 knots', text, flags=re.IGNORECASE)
+    text = re.sub(r'(\d+)NM\b', r'\1 nautical miles', text, flags=re.IGNORECASE)
+    text = re.sub(r'(\d+)FT\b', r'\1 feet', text, flags=re.IGNORECASE)
+    # Match KT/NM/FT at end of lines or before punctuation
+    text = re.sub(r'\bKT(?=[\.\,\s]|$)', ' knots', text, flags=re.IGNORECASE)
+    
+    return text
+
+def load_config():
+    """
+    Loads the station configuration from config.json with absolute pathing.
+    """
+    import json
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(base_dir, 'config.json')
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        # Fallback to local path if absolute fails (standard for some environments)
+        with open('config.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+
 global_prompt = ""
 clicked_yes = False
 clicked_no = False
@@ -20,32 +101,103 @@ last_link = ""
 def produce_wav_file(text, output_module_name):
     try:
         log = logging.getLogger("BMH")
-
-        path_separator = '\\' if os.name == 'nt' else '/'
-
+        import uuid
+        job_id = str(uuid.uuid4())[:8]
+        
+        original_cwd = os.getcwd()
         os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "binary"))
 
+        # Create a temporary UNIQUE subdirectory in binary/ for each job
+        # Create a temporary UNIQUE subdirectory in binary/ for each job
+        # This prevents fixed filenames like 'input1.txt' and 'output.wav' from colliding
+        job_dir = f"job_{job_id}"
+        os.makedirs(job_dir, exist_ok=True)
+        
+        # Copy all dependencies (DLLs, EXEs) to the job directory
+        # We skip .wav and .txt to save space and avoid copying the input/output of other jobs
+        for item in os.listdir('.'):
+            if os.path.isfile(item) and not item.lower().endswith(('.wav', '.txt')):
+                shutil.copy(item, os.path.join(job_dir, item))
+        
+        os.chdir(job_dir)
         with open('input1.txt', 'w', encoding='utf-8') as f:
             f.write(text)
 
         # Generate initial WAV file using voice synthesis
-        wait = subprocess.Popen(['voicetext_paul.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if os.name == 'nt':
+            log.info(f"[UTILS] Running voicetext_paul.exe (Windows)...")
+            wait = subprocess.Popen(['voicetext_paul.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            log.info(f"[UTILS] Running wine voicetext_paul.exe (macOS/Linux)...")
+            # Use absolute path for wine to ensure it works in PM2/cron/subprocess environments
+            wine_path = '/opt/homebrew/bin/wine'
+            if not os.path.exists(wine_path):
+                wine_path = 'wine' # Fallback
+            wait = subprocess.Popen([wine_path, 'voicetext_paul.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         wait.wait()
+        log.info(f"[UTILS] TTS process finished with return code {wait.returncode}")
 
         # Convert to proper WAV format using SoX
         sox_location = shutil.which('sox.exe') if os.name == 'nt' else shutil.which('sox')
-        wait2 = subprocess.Popen([str(sox_location), '-q', 'output.wav', '-r', '44100', '-b', '16', '-c', '1', f"..{path_separator}bmh_wav{path_separator}{output_module_name}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if not sox_location:
+            for path in ['/opt/homebrew/bin/sox', '/usr/bin/sox', '/usr/local/bin/sox']:
+                if os.path.exists(path):
+                    sox_location = path
+                    break
+        
+        if not sox_location:
+            log.error("[UTILS] SoX not found! Skipping WAV conversion.")
+            # Cleanup
+            os.chdir('..')
+            shutil.rmtree(job_dir)
+            os.chdir(original_cwd)
+            return False
+
+        log.info(f"[UTILS] Running SoX conversion: {sox_location}")
+        
+        # Global Path Fix: Ensure relative WAV files go to bmh_wav/ if main.py is running
+        if not os.path.isabs(output_module_name) and os.path.isdir(os.path.join(original_cwd, "bmh_wav")):
+            output_abs_path = os.path.abspath(os.path.join(original_cwd, "bmh_wav", output_module_name))
+        else:
+            output_abs_path = os.path.abspath(os.path.join(original_cwd, output_module_name))
+            
+        wait2 = subprocess.Popen([str(sox_location), '-q', 'output.wav', '-r', '44100', '-b', '16', '-c', '1', output_abs_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         wait2.wait()
-
-        # Clean up temporary files
-        os.remove('output.wav')
-        os.remove('input1.txt')
+        
+        # Cleanup job dir
         os.chdir('..')
-
-        log.info("[UTILS] Successfully produced WAV file for %s", output_module_name)
-
+        shutil.rmtree(job_dir)
+        os.chdir(original_cwd)
+        
+        log.info(f"[UTILS] Successfully produced WAV file for {output_module_name}")
+        return True
     except Exception:
-        log.error("[UTILS] Error producing WAV file: %s", traceback.format_exc())
+        log.error(f"[UTILS] Error producing WAV file: {traceback.format_exc()}")
+        try:
+            os.chdir(original_cwd)
+        except:
+            pass
+        return False
+
+import json
+
+def load_config():
+    """
+    Loads the station configuration from config.json.
+    """
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+    if not os.path.exists(config_path):
+        # Fallback to default if not found
+        return {
+            "EAS": {
+                "originator": "WXR",
+                "eventCode": "RWT",
+                "locations": ["036061"],
+                "purgeTime": "0015"
+            }
+        }
+    with open(config_path, 'r') as f:
+        return json.load(f)
 
 def generate_default_config(log):
     log.info("[UTILS] Generating default config.json file...")
